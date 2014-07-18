@@ -448,16 +448,18 @@ describe('Backbone.fetchCache', function() {
       });
 
       describe('on a cache hit', function() {
-        var promise, successSpy, cacheData;
+        var promise, successSpy, cacheData, completeSpy;
 
         beforeEach(function() {
           cacheData = { cheese: 'pickle' };
-          successSpy = jasmine.createSpy('fetch success');
+          successSpy = jasmine.createSpy('fetch success'),
+          completeSpy = jasmine.createSpy('fetch complete');
 
           Backbone.fetchCache._cache[model.url] = {
             value: cacheData,
             expires: (new Date()).getTime() + (5* 60 * 1000),
-            success: successSpy
+            success: successSpy,
+            complete: completeSpy
           };
           promise = model.fetch({ cache: true });
         });
@@ -492,6 +494,19 @@ describe('Backbone.fetchCache', function() {
 
           runs(function() {
             expect(successSpy).toHaveBeenCalledWith(model, cacheData, options);
+          });
+        });
+
+        it('calls the complete callback with the model instance, response data and fetch options', function() {
+          var options = {
+            cache: true,
+            complete: completeSpy
+          };
+
+          waitsFor(promiseComplete(model.fetch(options)));
+
+          runs(function() {
+            expect(completeSpy).toHaveBeenCalledWith(model, cacheData, options);
           });
         });
       });
@@ -595,14 +610,19 @@ describe('Backbone.fetchCache', function() {
           });
         });
 
-        it('fulfills the promise on AJAX success', function() {
-          var success = jasmine.createSpy('success');
-          model.fetch({ prefill: true }).done(success);
+        it('fulfills the promise on AJAX success and complete', function() {
+          var success = jasmine.createSpy('success'),
+              complete = jasmine.createSpy('complete');
+
+          model.fetch({ prefill: true }).done(success, complete);
 
           server.respond();
 
           expect(success.calls[0].args[0]).toEqual(model);
           expect(success.calls[0].args[1]).toEqual(modelResponse);
+
+          expect(complete.calls[0].args[0]).toEqual(model);
+          expect(complete.calls[0].args[1]).toEqual(modelResponse);
         });
       });
 
@@ -946,6 +966,25 @@ describe('Backbone.fetchCache', function() {
             expect(success).toHaveBeenCalledWith(collection, cacheData, options);
           });
         });
+
+        it('calls complete callback with the collection instance, response data and fetch options', function() {
+          var complete = jasmine.createSpy('complete');
+          var options = {
+            cache: true,
+            complete: complete
+          };
+
+          Backbone.fetchCache._cache[collection.url] = {
+            value: cacheData,
+            expires: (new Date()).getTime() + (5* 60 * 1000)
+          };
+
+          waitsFor(promiseComplete(collection.fetch(options)));
+
+          runs(function() {
+            expect(complete).toHaveBeenCalledWith(collection, cacheData, options);
+          });
+        });
       });
 
       describe('with prefill: true option', function() {
@@ -1036,12 +1075,16 @@ describe('Backbone.fetchCache', function() {
         });
 
         it('fulfills the promise on AJAX success', function() {
-          var success = jasmine.createSpy('success');
-          collection.fetch({ prefill: true }).done(success);
+          var success = jasmine.createSpy('success'),
+              complete = jasmine.createSpy('complete');
+          collection.fetch({ prefill: true }).done(success, complete);
           server.respond();
 
           expect(success.calls[0].args[0]).toEqual(collection);
           expect(success.calls[0].args[1]).toEqual(collectionResponse);
+
+          expect(complete.calls[0].args[0]).toEqual(collection);
+          expect(complete.calls[0].args[1]).toEqual(collectionResponse);
         });
       });
       describe('with caching disabled', function(){

@@ -177,6 +177,7 @@
       // ...finish and return if we're not
       else {
         if (_.isFunction(opts.success)) { opts.success(self, attributes, opts); }
+        if (_.isFunction(opts.complete)) { opts.complete(self, attributes, opts); }
         deferred.resolve(self);
       }
     }
@@ -269,6 +270,7 @@
       // ...finish and return if we're not
       else {
         if (_.isFunction(opts.success)) { opts.success(self, attributes, opts); }
+        if (_.isFunction(opts.complete)) { opts.complete(self, attributes, opts); }
         deferred.resolve(self);
       }
     }
